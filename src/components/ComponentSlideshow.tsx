@@ -18,6 +18,29 @@ export default function ComponentSlideshow({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [slideComponents, setSlideComponents] = useState<any[]>([]);
+  const [showControls, setShowControls] = useState(true);
+  let inactivityTimer: NodeJS.Timeout;
+
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      setShowControls(false);
+    }, 1500);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    // Initial timer to hide controls
+    inactivityTimer = setTimeout(() => {
+      setShowControls(false);
+    }, 500);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      clearTimeout(inactivityTimer);
+    };
+  }, [handleMouseMove, isFullscreen]); // Add isFullscreen to re-evaluate when it changes
 
   // Dynamically load slide components
   useEffect(() => {
@@ -131,6 +154,12 @@ export default function ComponentSlideshow({
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
+      // When fullscreen changes, reset controls visibility
+      setShowControls(true);
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -138,10 +167,13 @@ export default function ComponentSlideshow({
   }, []);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-gray-900">
+    <div className="relative w-full h-screen overflow-hidden bg-gray-900" onMouseMove={handleMouseMove}>
       {/* Header with preset info and controls */}
       {!isFullscreen && (
-        <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-center">
+        <div 
+          className={`absolute top-4 left-4 right-4 z-40 flex justify-between items-center transition-opacity duration-500 ease-in-out ${showControls ? 'opacity-100' : 'opacity-0'}`}
+          style={{ pointerEvents: showControls ? 'auto' : 'none' }}
+        >
           <div className="bg-black/20 backdrop-blur-md rounded-lg px-4 py-2">
             <h1 className="text-white font-semibold">{title}</h1>
             <p className="text-white/70 text-sm">{description}</p>
@@ -182,17 +214,25 @@ export default function ComponentSlideshow({
       </div>
 
       {/* Navigation */}
-      <SlideNavigation
-        currentSlide={currentSlide}
-        totalSlides={totalSlides}
-        onPrevious={previousSlide}
-        onNext={nextSlide}
-        onSlideSelect={goToSlide}
-      />
+      <div 
+        className={`transition-opacity duration-500 ease-in-out ${showControls ? 'opacity-100' : 'opacity-0'}`}
+        style={{ pointerEvents: showControls ? 'auto' : 'none' }}
+      >
+        <SlideNavigation
+          currentSlide={currentSlide}
+          totalSlides={totalSlides}
+          onPrevious={previousSlide}
+          onNext={nextSlide}
+          onSlideSelect={goToSlide}
+        />
+      </div>
 
       {/* Keyboard shortcuts help */}
       {!isFullscreen && (
-        <div className="absolute bottom-4 right-4 bg-black/20 backdrop-blur-md rounded-lg p-3 text-white/70 text-xs">
+        <div 
+          className={`absolute bottom-4 right-4 bg-black/20 backdrop-blur-md rounded-lg p-3 text-white/70 text-xs transition-opacity duration-500 ease-in-out ${showControls ? 'opacity-100' : 'opacity-0'}`}
+          style={{ pointerEvents: showControls ? 'auto' : 'none' }}
+        >
           <div className="space-y-1">
             <div>← → : Navigate slides</div>
             <div>Space : Next slide</div>
